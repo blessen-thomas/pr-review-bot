@@ -50,4 +50,4 @@ function parseFindings(rawText) {
   );
 }
 
-module.exports = { reviewDiff };
+module.exports = { reviewDiff, parseFindings };

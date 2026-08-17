@@ -50,4 +50,5 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.verifySignature = verifySignature;
 module.exports = router;
