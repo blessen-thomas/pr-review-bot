@@ -1,50 +1,64 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: None -> 1.0.0 (Initial Ratification)
+- List of modified principles:
+  - [PRINCIPLE_1_NAME] -> I. Thin Adapter AI Architecture
+  - [PRINCIPLE_2_NAME] -> II. Asynchronous Queue Processing & Resilience
+  - [PRINCIPLE_3_NAME] -> III. Webhook Security & Payload Verification
+  - [PRINCIPLE_4_NAME] -> IV. Operational Guardrails & Cost Protection
+  - [PRINCIPLE_5_NAME] -> V. Structured Output & Inline GitHub Review Integration
+- Added sections:
+  - Technology Stack & Configuration Constraints
+  - Quality Assurance & Verification Standards
+- Removed sections: None
+- Templates requiring updates:
+  - ✅ .specify/templates/plan-template.md (Constitution Check alignment verified)
+  - ✅ .specify/templates/spec-template.md (Requirements & security alignment verified)
+  - ✅ .specify/templates/tasks-template.md (Task categorization alignment verified)
+  - ✅ AGENTS.md (Runtime guidance aligned)
+  - ✅ README.md (Architecture & guardrails aligned)
+- Follow-up TODOs: None
+-->
+
+# AI PR Reviewer Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Thin Adapter AI Architecture
+The AI review provider interface (`src/services/aiReviewer.js`) MUST remain isolated as a thin adapter (`reviewDiff(diff) -> findings`). Core webhook receiver logic, payload validation, and job queue infrastructure MUST stay strictly decoupled from the specific LLM provider (e.g. Gemini, Claude, OpenAI) so that provider implementations can be swapped without affecting upstream or downstream services.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Asynchronous Queue Processing & Resilience
+All GitHub pull request webhooks MUST be acknowledged immediately with minimal latency. Heavy lifting—including fetching diffs, invoking AI APIs, and posting comments—MUST be offloaded to an asynchronous Redis/BullMQ worker queue. Worker jobs MUST implement exponential backoff retries to gracefully handle transient provider outages and API rate limits.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Webhook Security & Payload Verification
+All incoming HTTP webhook requests MUST be validated against the configured `GITHUB_WEBHOOK_SECRET` using HMAC-SHA256 signature verification before any job is accepted or queued. Requests with invalid or missing signatures MUST be rejected immediately with appropriate HTTP 401/403 status codes.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Operational Guardrails & Cost Protection
+The application MUST enforce hard limits to protect against unexpected cost spikes and rate-limit exhaustion. Specifically:
+- Diffs exceeding `MAX_DIFF_LINES` MUST be skipped prior to sending prompts to the LLM API.
+- Daily per-repository review caps (`MAX_REVIEWS_PER_REPO_PER_DAY`) MUST be enforced to restrict runaway automated usage.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Structured Output & Inline GitHub Review Integration
+AI review outputs MUST strictly conform to a structured findings schema (`file`, `line`, `severity`, `comment`). Findings MUST be formatted into precise inline review comments and posted back to the target pull request using Octokit API credentials.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Technology Stack & Configuration Constraints
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- **Runtime & Environment**: Node.js (>=18), CommonJS module system (`"type": "commonjs"`).
+- **Core Dependencies**: Express (webhooks), BullMQ & ioredis (job queue), `@google/generative-ai` (Gemini API adapter), `@octokit/rest` & `@octokit/auth-app` (GitHub App integration).
+- **Secret Management**: API keys, webhook secrets, App IDs, and private keys MUST be supplied exclusively via environment variables (`dotenv`). Hardcoding secrets in source files or committing credentials to Git is strictly forbidden.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Quality Assurance & Verification Standards
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- **Test Discipline**: Webhook signature verification, queue job creation, diff line parsing, and AI finding schema validation MUST be covered by unit/integration testing before release.
+- **Observability & Logging**: Server and worker processes MUST produce structured log outputs for job failures, API retries, skipped diffs, and rate-limit triggers. Silent exception catching is prohibited.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- This Constitution supersedes all ad-hoc development practices for the AI PR Reviewer project.
+- Any modifications to these principles require a formal amendment process and version increment:
+  - **MAJOR**: Structural redefinitions or principle removals breaking existing architecture guidelines.
+  - **MINOR**: Addition of new principles, tech stack additions, or expanded quality standards.
+  - **PATCH**: Non-semantic clarifications, typo fixes, or wording refinements.
+- Runtime development guidance resides in [AGENTS.md](file:///d:/Downloads/pr-review-bot_1/pr-review-bot/AGENTS.md) and [README.md](file:///d:/Downloads/pr-review-bot_1/pr-review-bot/README.md).
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-08-17 | **Last Amended**: 2026-08-17
