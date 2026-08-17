@@ -35,6 +35,26 @@ async function getPullRequestDiff(octokit, { owner, repo, pullNumber }) {
 // Posts a PR review with inline comments.
 // comments: [{ path, line, body }]
 async function postReview(octokit, { owner, repo, pullNumber, headSha, body, comments }) {
+  const reviewParams = {
+    owner,
+    repo,
+    pull_number: pullNumber,
+    commit_id: headSha,
+    event: 'COMMENT',
+    body,
+  };
+  if (Array.isArray(comments) && comments.length > 0) {
+    reviewParams.comments = comments.map((c) => ({
+      path: c.path,
+      line: c.line,
+      body: c.body,
+    }));
+  }
+  return octokit.pulls.createReview(reviewParams);
+}
+
+// Posts a top-level PR review summary without inline comments.
+async function postSummaryReview(octokit, { owner, repo, pullNumber, headSha, body }) {
   return octokit.pulls.createReview({
     owner,
     repo,
@@ -42,12 +62,8 @@ async function postReview(octokit, { owner, repo, pullNumber, headSha, body, com
     commit_id: headSha,
     event: 'COMMENT',
     body,
-    comments: comments.map((c) => ({
-      path: c.path,
-      line: c.line,
-      body: c.body,
-    })),
   });
 }
 
-module.exports = { getInstallationClient, getPullRequestDiff, postReview };
+module.exports = { getInstallationClient, getPullRequestDiff, postReview, postSummaryReview };
+
