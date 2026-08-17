@@ -1,7 +1,12 @@
-const test = require('node:test');
+const { test, after } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('crypto');
 const webhookRouter = require('../../src/routes/webhook');
+const { connection } = require('../../src/queue/queue');
+
+after(() => {
+  connection.disconnect();
+});
 
 test('verifySignature - valid signature returns true', () => {
   const secret = 'my_secret';
