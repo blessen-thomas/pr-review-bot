@@ -18,10 +18,29 @@ Respond with ONLY a JSON array (no markdown fences, no prose) of objects:
 
 If there is nothing worth flagging, respond with an empty array: []`;
 
+const FINDINGS_SCHEMA = {
+  type: 'ARRAY',
+  description: 'List of code review findings',
+  items: {
+    type: 'OBJECT',
+    properties: {
+      file: { type: 'STRING', description: 'File path from the diff' },
+      line: { type: 'NUMBER', description: 'Line number in the new file' },
+      severity: { type: 'STRING', enum: ['info', 'warning', 'critical'], description: 'Severity level' },
+      comment: { type: 'STRING', description: 'Short, specific, actionable review comment' },
+    },
+    required: ['file', 'line', 'severity', 'comment'],
+  },
+};
+
 async function reviewDiff(diff) {
   const model = genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+    model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
     systemInstruction: SYSTEM_PROMPT,
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: FINDINGS_SCHEMA,
+    },
   });
 
   const result = await model.generateContent(diff);
@@ -50,4 +69,4 @@ function parseFindings(rawText) {
   );
 }
 
-module.exports = { reviewDiff, parseFindings };
+module.exports = { reviewDiff, parseFindings, FINDINGS_SCHEMA };

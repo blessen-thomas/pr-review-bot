@@ -14,13 +14,19 @@ connection.on('error', (err) => {
 
 const reviewQueue = new Queue('pr-reviews', { connection });
 
-async function enqueueReview(jobData) {
-  return reviewQueue.add('review-pr', jobData, {
-    attempts: 2,
-    backoff: { type: 'exponential', delay: 5000 },
-    removeOnComplete: 100,
-    removeOnFail: 100,
-  });
+const DEFAULT_JOB_OPTIONS = {
+  attempts: 3,
+  backoff: {
+    type: 'exponential',
+    delay: 3000,
+  },
+  removeOnComplete: { age: 86400, count: 100 },
+  removeOnFail: { age: 604800, count: 500 },
+};
+
+async function enqueueReview(jobData, customOptions = {}) {
+  const options = { ...DEFAULT_JOB_OPTIONS, ...customOptions };
+  return reviewQueue.add('review-pr', jobData, options);
 }
 
-module.exports = { reviewQueue, connection, enqueueReview };
+module.exports = { reviewQueue, connection, enqueueReview, DEFAULT_JOB_OPTIONS };

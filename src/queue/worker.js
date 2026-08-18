@@ -1,4 +1,8 @@
 require('dotenv').config();
+const { validateEnv } = require('../utils/envValidator');
+
+validateEnv();
+
 const { Worker } = require('bullmq');
 const { connection } = require('./queue');
 const { parseValidDiffLines, filterFindings } = require('../utils/diffParser');
