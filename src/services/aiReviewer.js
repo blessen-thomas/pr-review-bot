@@ -20,7 +20,7 @@ If there is nothing worth flagging, respond with an empty array: []`;
 
 async function reviewDiff(diff) {
   const model = genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+    model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
     systemInstruction: SYSTEM_PROMPT,
   });
 
