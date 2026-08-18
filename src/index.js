@@ -1,4 +1,8 @@
 require('dotenv').config();
+const { validateEnv } = require('./utils/envValidator');
+
+validateEnv();
+
 const express = require('express');
 const webhookRouter = require('./routes/webhook');
 
