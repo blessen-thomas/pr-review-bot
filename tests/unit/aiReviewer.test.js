@@ -23,7 +23,6 @@ test('parseFindings - handles invalid JSON gracefully', () => {
   const findings = parseFindings(input);
   assert.deepStrictEqual(findings, []);
 });
-
 test('FINDINGS_SCHEMA - defines correct native JSON schema structure', () => {
   assert.strictEqual(FINDINGS_SCHEMA.type, 'ARRAY');
   assert.strictEqual(FINDINGS_SCHEMA.items.type, 'OBJECT');
