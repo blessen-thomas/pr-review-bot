@@ -20,3 +20,5 @@ private-key.pem
 Thumbs.db
 .vscode/
 .idea/
+
+specs/
