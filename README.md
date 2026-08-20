@@ -53,6 +53,33 @@ The AI call is isolated in `src/services/aiReviewer.js` as a thin adapter —
 7. **Expose locally for testing** with a tunnel (e.g. `ngrok http 3000`) and
    point the GitHub App's webhook URL at `<tunnel-url>/webhook`.
 
+## Docker Deployment
+
+PullScout includes containerization support for local development and production cloud deployment.
+
+### Prerequisites
+- Docker Engine & Docker Compose installed.
+- Valid `.env` configuration file populated (see `.env.example`).
+
+### Running with Docker Compose (Local Dev)
+Launch the Webhook Server, BullMQ Queue Worker, and Redis container concurrently:
+
+```bash
+# Build and start containers in detached mode
+docker compose up -d --build
+
+# View container logs
+docker compose logs -f
+
+# Stop containers
+docker compose down
+```
+
+### Production / Remote Redis
+For cloud platform deployments (e.g. Render, Railway, Fly.io), set `REDIS_URL` to point to your remote Redis instance (e.g. Upstash Redis) and launch the containers:
+- **Webhook Server**: `docker run --env-file .env -p 3000:3000 pullscout-app`
+- **Queue Worker**: `docker run --env-file .env pullscout-app node src/queue/worker.js`
+
 ## Cost / reliability guardrails
 
 - `MAX_DIFF_LINES` — skips oversized diffs instead of sending them to the API
