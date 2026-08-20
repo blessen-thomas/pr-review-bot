@@ -3,6 +3,30 @@
 A GitHub App that automatically reviews pull requests using the Gemini API
 (free tier) and posts inline comments as a real PR review.
 
+## How PullScout Works
+
+Once configured, reviews happen automatically:
+
+1. Install the PullScout GitHub App on a repository.
+2. Open or update a pull request.
+3. GitHub sends a `pull_request` webhook to PullScout.
+4. PullScout verifies the webhook signature and applies the rate limit.
+5. Redis prevents duplicate reviews for the same PR commit.
+6. BullMQ queues the review for asynchronous processing.
+7. Gemini analyzes the pull request diff.
+8. PullScout posts the findings directly as inline comments on the GitHub pull request.
+
+## What It Provides
+
+- AI-powered pull request code review using Gemini
+- Inline GitHub review comments
+- Asynchronous processing with BullMQ
+- Redis-backed duplicate review prevention
+- Webhook HMAC-SHA256 verification
+- Per-repository daily rate limiting
+- Retry handling for failed jobs
+- Diff-size limits and GitHub review fallbacks
+
 ## Architecture
 
 ```mermaid
