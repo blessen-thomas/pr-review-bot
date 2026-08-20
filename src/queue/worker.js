@@ -9,6 +9,7 @@ const { parseValidDiffLines, filterFindings } = require('../utils/diffParser');
 const { getInstallationClient, getPullRequestDiff, postReview, postSummaryReview } = require('../services/github');
 const { reviewDiff } = require('../services/aiReviewer');
 const { canReview, recordReview } = require('../utils/rateLimiter');
+const { markDedupComplete, releaseDedupLock } = require('../utils/deduplicator');
 
 function diffLineCount(diff) {
   return diff.split('\n').filter((l) => l.startsWith('+') || l.startsWith('-')).length;
@@ -107,6 +108,8 @@ const worker = new Worker(
       });
     }
 
+    await markDedupComplete(connection, { owner, repo, pullNumber, headSha });
+
     return { findings: findings.length, inline: validInlineFindings.length };
   },
   { connection }
@@ -117,8 +120,15 @@ worker.on('completed', (job, result) => {
   console.log(`Job ${job.id} done:`, result);
 });
 
-worker.on('failed', (job, err) => {
+worker.on('failed', async (job, err) => {
   console.error(`Job ${job?.id} failed:`, err.message);
+  if (job && job.data && job.attemptsMade >= (job.opts?.attempts || 3)) {
+    try {
+      await releaseDedupLock(connection, job.data);
+    } catch (releaseErr) {
+      console.error(`Failed to release dedup lock for job ${job.id}:`, releaseErr.message);
+    }
+  }
 });
 
 console.log('Worker started, waiting for review jobs...');
