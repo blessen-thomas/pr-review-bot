@@ -24,9 +24,22 @@ const DEFAULT_JOB_OPTIONS = {
   removeOnFail: { age: 604800, count: 500 },
 };
 
+const { acquireDedupLock, releaseDedupLock } = require('../utils/deduplicator');
+
 async function enqueueReview(jobData, customOptions = {}) {
-  const options = { ...DEFAULT_JOB_OPTIONS, ...customOptions };
-  return reviewQueue.add('review-pr', jobData, options);
+  const lockAcquired = await acquireDedupLock(connection, jobData);
+  if (!lockAcquired) {
+    return { deduplicated: true };
+  }
+
+  try {
+    const options = { ...DEFAULT_JOB_OPTIONS, ...customOptions };
+    const job = await reviewQueue.add('review-pr', jobData, options);
+    return { ...job, id: job?.id, deduplicated: false };
+  } catch (err) {
+    await releaseDedupLock(connection, jobData);
+    throw err;
+  }
 }
 
 module.exports = { reviewQueue, connection, enqueueReview, DEFAULT_JOB_OPTIONS };

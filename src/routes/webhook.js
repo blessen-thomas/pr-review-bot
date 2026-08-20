@@ -36,13 +36,16 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    await enqueueReview({
+    const result = await enqueueReview({
       installationId: payload.installation?.id,
       owner: payload.repository.owner.login,
       repo: payload.repository.name,
       pullNumber: payload.pull_request.number,
       headSha: payload.pull_request.head.sha,
     });
+    if (result && result.deduplicated) {
+      return res.status(200).send('deduplicated');
+    }
     res.status(202).send('queued');
   } catch (err) {
     console.error('Failed to enqueue review job:', err);

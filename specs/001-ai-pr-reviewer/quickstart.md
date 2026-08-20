@@ -11,6 +11,7 @@
    GEMINI_API_KEY=your_gemini_key
    MAX_DIFF_LINES=800
    MAX_REVIEWS_PER_REPO_PER_DAY=10
+   DEDUPLICATION_TTL_SECONDS=86400
    ```
 
 ## Running locally

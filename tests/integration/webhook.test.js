@@ -10,6 +10,7 @@ let testServer;
 let serverUrl;
 let originalSecret;
 let capturedJob = null;
+let mockEnqueuedSet = new Set();
 let shouldFailEnqueue = false;
 
 // Inject mock queue module into require.cache to prevent live IORedis/BullMQ handles
@@ -23,8 +24,13 @@ require.cache[queuePath] = {
       if (shouldFailEnqueue) {
         throw new Error('Queue connection failure');
       }
+      const key = `${jobData.owner}/${jobData.repo}#${jobData.pullNumber}:${jobData.headSha}`;
+      if (mockEnqueuedSet.has(key)) {
+        return { deduplicated: true };
+      }
+      mockEnqueuedSet.add(key);
       capturedJob = jobData;
-      return { id: 'mock-job-id' };
+      return { id: 'mock-job-id', deduplicated: false };
     },
     connection: { disconnect: () => {} },
   },
@@ -201,4 +207,64 @@ test('POST /webhook - returns HTTP 500 when queueing fails', async () => {
   const res = await makePostRequest(serverUrl, '/webhook', headers, payload);
   assert.strictEqual(res.statusCode, 500);
   assert.strictEqual(res.body, 'failed to queue review');
+});
+
+test('POST /webhook - duplicate webhook event returns HTTP 200 deduplicated', async () => {
+  capturedJob = null;
+  shouldFailEnqueue = false;
+  mockEnqueuedSet.clear();
+
+  const payload = JSON.stringify({
+    action: 'opened',
+    installation: { id: 500 },
+    repository: { name: 'dedup-repo', owner: { login: 'dedup-owner' } },
+    pull_request: { number: 12, head: { sha: 'commit_sha_123' } },
+  });
+
+  const headers = {
+    'X-GitHub-Event': 'pull_request',
+    'X-Hub-Signature-256': signPayload(payload),
+  };
+
+  const res1 = await makePostRequest(serverUrl, '/webhook', headers, payload);
+  assert.strictEqual(res1.statusCode, 202);
+  assert.strictEqual(res1.body, 'queued');
+
+  const res2 = await makePostRequest(serverUrl, '/webhook', headers, payload);
+  assert.strictEqual(res2.statusCode, 200);
+  assert.strictEqual(res2.body, 'deduplicated');
+});
+
+test('POST /webhook - same PR with a new commit is accepted and queued', async () => {
+  capturedJob = null;
+  shouldFailEnqueue = false;
+  mockEnqueuedSet.clear();
+
+  const payload1 = JSON.stringify({
+    action: 'opened',
+    installation: { id: 500 },
+    repository: { name: 'dedup-repo', owner: { login: 'dedup-owner' } },
+    pull_request: { number: 12, head: { sha: 'commit_sha_1' } },
+  });
+
+  const payload2 = JSON.stringify({
+    action: 'synchronize',
+    installation: { id: 500 },
+    repository: { name: 'dedup-repo', owner: { login: 'dedup-owner' } },
+    pull_request: { number: 12, head: { sha: 'commit_sha_2' } },
+  });
+
+  const res1 = await makePostRequest(serverUrl, '/webhook', {
+    'X-GitHub-Event': 'pull_request',
+    'X-Hub-Signature-256': signPayload(payload1),
+  }, payload1);
+  assert.strictEqual(res1.statusCode, 202);
+
+  const res2 = await makePostRequest(serverUrl, '/webhook', {
+    'X-GitHub-Event': 'pull_request',
+    'X-Hub-Signature-256': signPayload(payload2),
+  }, payload2);
+  assert.strictEqual(res2.statusCode, 202);
+  assert.strictEqual(res2.body, 'queued');
+  assert.strictEqual(capturedJob.headSha, 'commit_sha_2');
 });

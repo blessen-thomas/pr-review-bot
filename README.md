@@ -57,6 +57,7 @@ The AI call is isolated in `src/services/aiReviewer.js` as a thin adapter —
 
 - `MAX_DIFF_LINES` — skips oversized diffs instead of sending them to the API
 - `MAX_REVIEWS_PER_REPO_PER_DAY` — in-memory cap per repo, resets daily
+- `DEDUPLICATION_TTL_SECONDS` — Redis-backed PR commit deduplication (default: 86400s / 24h) preventing duplicate review processing for identical PR commits
 - BullMQ retries failed jobs (e.g. transient API errors) with backoff instead
   of dropping them silently
 
